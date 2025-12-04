@@ -39,14 +39,15 @@
 # <br>
 # #### <span style = 'color:green'>ChatGPT's public release was November of 2022 we will use that as a data point to compare metrics before and after wide spread AI availability. The Global Cybersecurity Threats dataset provides volume and attack type trends, the Cyber Events Database shows incident level context on motives and actors, and the AI Incident Database identifies specific cases of AI use allowing us to try and correlate AI availability with changes in cybercrime patterns.</span>
 
-# In[1]:
+# In[23]:
 
 
 # Imports
 import pandas as pd
+import numpy as np
 
 
-# In[12]:
+# In[2]:
 
 
 # Load datasets
@@ -61,7 +62,7 @@ cyber_threats = pd.read_csv('data/Global_Cybersecurity_Threats_2015_2024.csv')
 cyber_events = pd.read_csv('data/CISSM_Cyber_Events_Database_2014_Oct_2025.csv')
 
 
-# In[6]:
+# In[3]:
 
 
 # Check first few rows of each dataset
@@ -76,19 +77,24 @@ display("\nCISSM Cyber Events Database")
 display(cyber_events.head())
 
 
-# In[15]:
+# In[18]:
 
 
 # Get info about each dataset
+display("Dataset Shapes After Cleaning:")
+display("AI Incidents:", ai_incidents.shape)
+display("Global Cybersecurity Threats:", cyber_threats.shape)
+display("CISSM Cyber Events:", cyber_events.shape)
+
 display("AI Incidents Database Info")
 display(ai_incidents.info())
 display("Global Cybersecurity Threats Info")
 display(cyber_threats.info())
-display("ISSM Cyber Events Database Info")
+display("CISSM Cyber Events Database Info")
 display(cyber_events.info())
 
 
-# In[14]:
+# In[ ]:
 
 
 # Count null or missing values
@@ -100,20 +106,20 @@ display("CISSM Cyber Events Database Missing Values")
 display(cyber_events.isnull().sum())
 
 
-# In[19]:
+# In[10]:
 
 
 # Data cleaning and preprocessing
 
 # AI Incidents
-# Convert date string to datetime and extract year for time based analysis, we need this to filter by year later
+# Convert date string to datetime and extract year for time based analysis, we need this to filter by month and year later
 ai_incidents['date'] = pd.to_datetime(ai_incidents['date'])
 ai_incidents['year'] = ai_incidents['date'].dt.year
 ai_incidents['month'] = ai_incidents['date'].dt.month
 
 # Select only columns relevant for analysis
 ai_incidents_clean = ai_incidents[[
-    'incident_id', 'date', 'year', 'title', 'description',
+    'incident_id', 'date', 'year', 'month', 'title', 'description',
     'Alleged deployer of AI system', 'Alleged developer of AI system'
 ]].copy()
 
@@ -144,11 +150,101 @@ display("Cleaned CISSM Cyber Events Dataset")
 display(cyber_events_clean.head())
 
 
+# In[17]:
+
+
+# Get info and check for missing values in cleaned datasets
+display("Dataset Shapes After Cleaning:")
+display("AI Incidents:", ai_incidents_clean.shape)
+display("Global Cybersecurity Threats:", cyber_threats_clean.shape)
+display("CISSM Cyber Events:", cyber_events_clean.shape)
+
+display("AI Incidents Database Info")
+display(ai_incidents_clean.info())
+display(ai_incidents_clean.isna().sum())
+
+display("Global Cybersecurity Threats Info")
+display(cyber_threats_clean.info())
+display(cyber_threats_clean.isna().sum())
+
+display("CISSM Cyber Events Database Info")
+display(cyber_events_clean.info())
+display(cyber_events_clean.isna().sum())
+
+
+# In[22]:
+
+
+# Begin exploratory data analysis 
+display("Begin exploratory data analysis")
+
+# Understand the time span for each dataset
+display("Date Ranges")
+display(f"AI Incidents: {ai_incidents_clean['year'].min()} - {ai_incidents_clean['year'].max()}")
+display(f"Cyber Threats: {cyber_threats_clean['Year'].min()} - {cyber_threats_clean['Year'].max()}")
+display(f"Cyber Events: {cyber_events_clean['year'].min()} - {cyber_events_clean['year'].max()}")
+
+# Yearly Incident Counts
+display("AI Incidents by Year")
+display(ai_incidents_clean.groupby('year').size().reset_index(name='count'))
+
+display("Cyber Threats by Year")
+display(cyber_threats_clean.groupby('Year').size().reset_index(name='count'))
+
+display("Cyber Events by Year")
+display(cyber_events_clean.groupby('year').size().reset_index(name='count'))
+
+# Categories of types of attacks, motives, and actors
+display("Cyber Threats - Attack Types")
+display(cyber_threats_clean['Attack Type'].value_counts())
+
+display("Cyber Events - Event Types")
+display(cyber_events_clean['event_type'].value_counts())
+
+display("Cyber Events - Actor Types")
+display(cyber_events_clean['actor_type'].value_counts())
+
+display("Cyber Events - Motives")
+display(cyber_events_clean['motive'].value_counts())
+
+
+# In[32]:
+
+
+# Define analysis period and AI era
+# Define AI era based on ChatGPT public release (November 2022)
+# Pre AI: 2015-2022 / Post-AI: 2023+ I wish we had more relevant data for 2024 but this is what we have to work with
+
+# AI Incidents Dataset
+# Filter analysis window and add era column
+ai_incidents_clean = ai_incidents_clean[ai_incidents_clean['year'] >= 2015].copy()
+ai_incidents_clean['ai_era'] = np.where(ai_incidents_clean['year'] >= 2023, 'post', 'pre')
+
+# Global Cybersecurity Threats
+# Add era column
+cyber_threats_clean['ai_era'] = np.where(cyber_threats_clean['Year'] >= 2023, 'post', 'pre')
+
+# CISSM Cyber Events Database
+# Filter analysis window and add era column
+cyber_events_clean = cyber_events_clean[cyber_events_clean['year'] >= 2015].copy()
+cyber_events_clean['ai_era'] = np.where(cyber_events_clean['year'] >= 2023, 'post', 'pre')
+
+# Verify Era Distribution
+display("AI Incidents by Era")
+display(ai_incidents_clean['ai_era'].value_counts())
+
+display("\nCyber Threats by Era")
+display(cyber_threats_clean['ai_era'].value_counts())
+
+display("\nCyber Events by Era")
+display(cyber_events_clean['ai_era'].value_counts())
+
+
 # ## Resources and References
 # *What resources and references have you used for this project?*
 # 📝 <!-- Answer Below -->
 
-# In[2]:
+# In[7]:
 
 
 # ⚠️ Make sure you run this cell at the end of your notebook before every submission!
