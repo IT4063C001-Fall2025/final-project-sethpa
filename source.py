@@ -31,6 +31,8 @@
 #     * https://www.kaggle.com/datasets/atharvasoundankar/global-cybersecurity-threats-2015-2024
 # * **AI incident database:** Documenting the times when things go wrong with AI solutions
 #     * https://www.kaggle.com/datasets/konradb/ai-incident-database
+# * **Epoch AI:** Comprehensive database of over 3200 models tracks key factors driving machine learning progress
+#     * https://epoch.ai/data/ai-models 
 
 # ## Approach and Analysis
 # *What is your approach to answering your project question?*
@@ -39,7 +41,7 @@
 # <br>
 # #### <span style = 'color:green'>ChatGPT's public release was November of 2022 we will use that as a data point to compare metrics before and after wide spread AI availability. The Global Cybersecurity Threats dataset provides volume and attack type trends, the Cyber Events Database shows incident level context on motives and actors, and the AI Incident Database identifies specific cases of AI use allowing us to try and correlate AI availability with changes in cybercrime patterns.</span>
 
-# In[23]:
+# In[2]:
 
 
 # Imports
@@ -47,7 +49,7 @@ import pandas as pd
 import numpy as np
 
 
-# In[2]:
+# In[3]:
 
 
 # Load datasets
@@ -61,8 +63,11 @@ cyber_threats = pd.read_csv('data/Global_Cybersecurity_Threats_2015_2024.csv')
 # CISSM Cyber Events Database
 cyber_events = pd.read_csv('data/CISSM_Cyber_Events_Database_2014_Oct_2025.csv')
 
+# Epoch AI Model Tracking
+epoch_ai_models = pd.read_csv('data/epoch_ai_models.csv')
 
-# In[3]:
+
+# In[4]:
 
 
 # Check first few rows of each dataset
@@ -70,31 +75,37 @@ cyber_events = pd.read_csv('data/CISSM_Cyber_Events_Database_2014_Oct_2025.csv')
 display("AI Incidents Database")
 display(ai_incidents.head())
 
-display("\nGlobal Cybersecurity Threats")
+display("Global Cybersecurity Threats")
 display(cyber_threats.head())
 
-display("\nCISSM Cyber Events Database")
+display("CISSM Cyber Events Database")
 display(cyber_events.head())
 
+display("Epoch AI Model Tracking")
+display(epoch_ai_models.head())
 
-# In[18]:
+
+# In[5]:
 
 
 # Get info about each dataset
-display("Dataset Shapes After Cleaning:")
+display("Dataset Shapes:")
 display("AI Incidents:", ai_incidents.shape)
 display("Global Cybersecurity Threats:", cyber_threats.shape)
 display("CISSM Cyber Events:", cyber_events.shape)
-
+display("Epoch AI Model Tracking:")
+display(epoch_ai_models.shape)
 display("AI Incidents Database Info")
 display(ai_incidents.info())
 display("Global Cybersecurity Threats Info")
 display(cyber_threats.info())
 display("CISSM Cyber Events Database Info")
 display(cyber_events.info())
+display("Epoch AI Model Tracking Info")
+display(epoch_ai_models.info())
 
 
-# In[ ]:
+# In[6]:
 
 
 # Count null or missing values
@@ -104,9 +115,11 @@ display("Global Cybersecurity Threats Missing Values")
 display(cyber_threats.isnull().sum())
 display("CISSM Cyber Events Database Missing Values")
 display(cyber_events.isnull().sum())
+display("Epoch AI Model Tracking Missing Values")
+display(epoch_ai_models.isnull().sum())
 
 
-# In[10]:
+# In[ ]:
 
 
 # Data cleaning and preprocessing
@@ -141,6 +154,33 @@ cyber_events_clean = cyber_events[[
     'event_type', 'event_subtype', 'industry', 'country', 'description'
 ]].copy()
 
+# Epoch    'Open weights (unrestricted)', 
+    'Open weights (restricted use)', 
+    'Hosted access (no API)'
+]
+epoch_public = epoch_ai_models[
+    epoch_ai_models['Model accessibility'].isin(epoch_public_access_types)
+].copy()
+
+# Filter to language models (most relevant for AI-enabled cybercrime like phishing)
+epoch_language = epoch_public[
+    epoch_public['Domain'].str.contains('Language', case=False, na=False)
+].copy()
+
+# Select relevant columns for analysis
+epoch_ai_clean = epoch_language[[
+    'Model', 'Publication date', 'year', 'month',
+    'Domain', 'Task', 'Organization', 'Country (of organization)',
+    'Model accessibility', 'Parameters', 'Training compute (FLOP)'
+]].copy()
+
+# Rename columns for consistency
+epoch_ai_clean.columns = [
+    'model_name', 'publication_date', 'year', 'month',
+    'domain', 'task', 'organization', 'country',
+    'accessibility', 'parameters', 'training_compute_flop'
+]
+
 display("Data cleaning and preprocessing completed.")
 display("Cleaned AI Incidents Dataset")
 display(ai_incidents_clean.head())
@@ -148,9 +188,12 @@ display("Cleaned Global Cybersecurity Threats Dataset")
 display(cyber_threats_clean.head())
 display("Cleaned CISSM Cyber Events Dataset")
 display(cyber_events_clean.head())
+display("Cleaned Epoch AI Models Dataset (Public Language Models)")
+display("Total models:", {len(epoch_ai_models)}, "Public models:", {len(epoch_public)}, "Public language models:", {len(epoch_ai_clean)})
+display(epoch_ai_clean.head())
 
 
-# In[17]:
+# In[15]:
 
 
 # Get info and check for missing values in cleaned datasets
@@ -171,8 +214,12 @@ display("CISSM Cyber Events Database Info")
 display(cyber_events_clean.info())
 display(cyber_events_clean.isna().sum())
 
+display("Epoch AI Models Info")
+display(epoch_ai_clean.info())
+display(epoch_ai_clean.isna().sum())
 
-# In[22]:
+
+# In[17]:
 
 
 # Begin exploratory data analysis 
@@ -183,6 +230,7 @@ display("Date Ranges")
 display(f"AI Incidents: {ai_incidents_clean['year'].min()} - {ai_incidents_clean['year'].max()}")
 display(f"Cyber Threats: {cyber_threats_clean['Year'].min()} - {cyber_threats_clean['Year'].max()}")
 display(f"Cyber Events: {cyber_events_clean['year'].min()} - {cyber_events_clean['year'].max()}")
+display(f"Epoch AI Models: {epoch_ai_clean['year'].min()} - {epoch_ai_clean['year'].max()}")
 
 # Yearly Incident Counts
 display("AI Incidents by Year")
@@ -193,6 +241,9 @@ display(cyber_threats_clean.groupby('Year').size().reset_index(name='count'))
 
 display("Cyber Events by Year")
 display(cyber_events_clean.groupby('year').size().reset_index(name='count'))
+
+display("Epoch AI Models Released by Year")
+display(epoch_ai_clean.groupby('year').size().reset_index(name='count'))
 
 # Categories of types of attacks, motives, and actors
 display("Cyber Threats - Attack Types")
@@ -207,8 +258,22 @@ display(cyber_events_clean['actor_type'].value_counts())
 display("Cyber Events - Motives")
 display(cyber_events_clean['motive'].value_counts())
 
+# Epoch AI Model characteristics
+# Drop rows with missing publication dates
+epoch_ai_clean = epoch_ai_clean.dropna(subset=['publication_date'])
 
-# In[32]:
+# Convert year and month to int
+epoch_ai_clean['year'] = epoch_ai_clean['year'].astype(int)
+epoch_ai_clean['month'] = epoch_ai_clean['month'].astype(int)
+
+display("Epoch AI Models - Accessibility Types")
+display(epoch_ai_clean['accessibility'].value_counts())
+
+display("Epoch AI Models - Top Organizations")
+display(epoch_ai_clean['organization'].value_counts().head(10))
+
+
+# In[10]:
 
 
 # Define analysis period and AI era
@@ -240,11 +305,45 @@ display("\nCyber Events by Era")
 display(cyber_events_clean['ai_era'].value_counts())
 
 
+# In[11]:
+
+
+# Try to understand impact and severity of incidents across eras
+
+# Financial Impact
+display("Cyber Threats - Average Financial Loss by Era")
+display(cyber_threats_clean.groupby('ai_era')['Financial Loss (in Million $)'].mean().reset_index(name='avg_loss_million'))
+
+# Financial loss seems skewed by outliers, let's look deeper
+# After digging into the data, it appears to be generated data for illustration purposes, so we will just show summary statistics and sample values
+display("Financial Loss - Summary Statistics")
+display(cyber_threats_clean['Financial Loss (in Million $)'].describe())
+
+display("Financial Loss - Sample Values")
+display(cyber_threats_clean['Financial Loss (in Million $)'].head(20))
+
+display("Cyber Threats - Average Affected Users by Era")
+display(cyber_threats_clean.groupby('ai_era')['Number of Affected Users'].mean().reset_index(name='avg_affected_users'))
+
+display("Cyber Threats - Attack Types by Era")
+display(cyber_threats_clean.groupby(['ai_era', 'Attack Type']).size().reset_index(name='count'))
+
+# Event Types & Motives
+display("Cyber Events - Event Types by Era")
+display(cyber_events_clean.groupby(['ai_era', 'event_type']).size().reset_index(name='count'))
+
+display("Cyber Events - Motives by Era")
+display(cyber_events_clean.groupby(['ai_era', 'motive']).size().reset_index(name='count'))
+
+display("Cyber Events - Actor Types by Era")
+display(cyber_events_clean.groupby(['ai_era', 'actor_type']).size().reset_index(name='count'))
+
+
 # ## Resources and References
 # *What resources and references have you used for this project?*
 # 📝 <!-- Answer Below -->
 
-# In[7]:
+# In[12]:
 
 
 # ⚠️ Make sure you run this cell at the end of your notebook before every submission!
