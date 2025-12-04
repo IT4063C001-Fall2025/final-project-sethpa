@@ -27,7 +27,7 @@
 # 📝 <!-- Answer Below -->
 # * **Cyber Events Database:** The Cyber Events Database consists of publicly available information on cyber events
 #     * https://cissm.umd.edu/research-impact/publications/cyber-events-database-home
-# * **Global Cybersecurity Threats (2015-2024):** A comprehensive dataset tracking cybersecurity incidents, attack vectors, threat 
+# * **Global Cybersecurity Threats (2015-2024):** <span style = 'color:red; font-style: italic'>This was determined to be generated data and will not be used extensively for analysis</span> A comprehensive dataset tracking cybersecurity incidents, attack vectors, threat 
 #     * https://www.kaggle.com/datasets/atharvasoundankar/global-cybersecurity-threats-2015-2024
 # * **AI incident database:** Documenting the times when things go wrong with AI solutions
 #     * https://www.kaggle.com/datasets/konradb/ai-incident-database
@@ -153,8 +153,19 @@ cyber_events_clean = cyber_events[[
     'event_date', 'year', 'month', 'actor_type', 'motive',
     'event_type', 'event_subtype', 'industry', 'country', 'description'
 ]].copy()
+# Remove duplicate records from cyber events
+cyber_events_clean = cyber_events_clean.drop_duplicates()
 
-# Epoch    'Open weights (unrestricted)', 
+# Epoch AI Models
+# Convert publication date to datetime
+epoch_ai_models['Publication date'] = pd.to_datetime(epoch_ai_models['Publication date'], errors='coerce')
+epoch_ai_models['year'] = epoch_ai_models['Publication date'].dt.year
+epoch_ai_models['month'] = epoch_ai_models['Publication date'].dt.month
+
+# Filter to publicly accessible models only (exclude internal/unreleased)
+epoch_public_access_types = [
+    'API access', 
+    'Open weights (unrestricted)', 
     'Open weights (restricted use)', 
     'Hosted access (no API)'
 ]
@@ -181,6 +192,11 @@ epoch_ai_clean.columns = [
     'accessibility', 'parameters', 'training_compute_flop'
 ]
 
+# Drop rows with missing publication dates and convert year/month to int
+epoch_ai_clean = epoch_ai_clean.dropna(subset=['publication_date'])
+epoch_ai_clean['year'] = epoch_ai_clean['year'].astype(int)
+epoch_ai_clean['month'] = epoch_ai_clean['month'].astype(int)
+
 display("Data cleaning and preprocessing completed.")
 display("Cleaned AI Incidents Dataset")
 display(ai_incidents_clean.head())
@@ -193,7 +209,7 @@ display("Total models:", {len(epoch_ai_models)}, "Public models:", {len(epoch_pu
 display(epoch_ai_clean.head())
 
 
-# In[15]:
+# In[13]:
 
 
 # Get info and check for missing values in cleaned datasets
@@ -219,7 +235,7 @@ display(epoch_ai_clean.info())
 display(epoch_ai_clean.isna().sum())
 
 
-# In[17]:
+# In[15]:
 
 
 # Begin exploratory data analysis 
@@ -262,10 +278,6 @@ display(cyber_events_clean['motive'].value_counts())
 # Drop rows with missing publication dates
 epoch_ai_clean = epoch_ai_clean.dropna(subset=['publication_date'])
 
-# Convert year and month to int
-epoch_ai_clean['year'] = epoch_ai_clean['year'].astype(int)
-epoch_ai_clean['month'] = epoch_ai_clean['month'].astype(int)
-
 display("Epoch AI Models - Accessibility Types")
 display(epoch_ai_clean['accessibility'].value_counts())
 
@@ -273,7 +285,7 @@ display("Epoch AI Models - Top Organizations")
 display(epoch_ai_clean['organization'].value_counts().head(10))
 
 
-# In[10]:
+# In[18]:
 
 
 # Define analysis period and AI era
@@ -294,18 +306,30 @@ cyber_threats_clean['ai_era'] = np.where(cyber_threats_clean['Year'] >= 2023, 'p
 cyber_events_clean = cyber_events_clean[cyber_events_clean['year'] >= 2015].copy()
 cyber_events_clean['ai_era'] = np.where(cyber_events_clean['year'] >= 2023, 'post', 'pre')
 
+# Epoch AI Models
+# Add era column
+epoch_ai_clean = epoch_ai_clean[epoch_ai_clean['year'] >= 2015].copy()
+epoch_ai_clean['ai_era'] = np.where(epoch_ai_clean['year'] >= 2023, 'post', 'pre')
+
 # Verify Era Distribution
 display("AI Incidents by Era")
 display(ai_incidents_clean['ai_era'].value_counts())
 
-display("\nCyber Threats by Era")
+display("Cyber Threats by Era")
 display(cyber_threats_clean['ai_era'].value_counts())
 
-display("\nCyber Events by Era")
+display("Cyber Events by Era")
 display(cyber_events_clean['ai_era'].value_counts())
 
+display("Epoch AI Models by Era")
+display(epoch_ai_clean['ai_era'].value_counts())
 
-# In[11]:
+# Show the acceleration in model releases
+display("Public Language Model Releases by Year")
+display(epoch_ai_clean.groupby('year').size())
+
+
+# In[20]:
 
 
 # Try to understand impact and severity of incidents across eras
@@ -337,6 +361,54 @@ display(cyber_events_clean.groupby(['ai_era', 'motive']).size().reset_index(name
 
 display("Cyber Events - Actor Types by Era")
 display(cyber_events_clean.groupby(['ai_era', 'actor_type']).size().reset_index(name='count'))
+
+# AI Model Availability by Era
+display("Epoch AI - Model Releases by Era")
+display(epoch_ai_clean.groupby('ai_era').size().reset_index(name='model_count'))
+
+display("Epoch AI - Accessibility Types by Era")
+display(epoch_ai_clean.groupby(['ai_era', 'accessibility']).size().reset_index(name='count'))
+
+display("Epoch AI - Top Organizations by Era")
+display(epoch_ai_clean.groupby(['ai_era', 'organization']).size().reset_index(name='count').sort_values(['ai_era', 'count'], ascending=[True, False]).groupby('ai_era').head(5))
+
+
+# In[21]:
+
+
+# Check for duplicated data
+display("Duplicate Records Check")
+display(f"AI Incidents duplicates: {ai_incidents_clean.duplicated().sum()}")
+display(f"Cyber Events duplicates: {cyber_events_clean.duplicated().sum()}")
+display(f"Epoch AI duplicates: {epoch_ai_clean.duplicated().sum()}")
+
+
+# In[23]:
+
+
+# Dig in Cyber Events duplicate values
+# Investigate the duplicates
+display("Cyber Events - Duplicate Investigation")
+display(f"Total records: {len(cyber_events_clean)}")
+display(f"Duplicate records: {cyber_events_clean.duplicated().sum()}")
+display(f"Unique records: {len(cyber_events_clean) - cyber_events_clean.duplicated().sum()}")
+
+# Look at a sample of duplicates
+display("Sample duplicate rows:")
+display(cyber_events_clean[cyber_events_clean.duplicated(keep=False)].sort_values(['event_date', 'event_type']).head(10))
+
+
+# In[22]:
+
+
+# Check missing values again after cleaning
+display("Missing Values Summary")
+display("AI Incidents:")
+display(ai_incidents_clean.isnull().sum())
+display("Cyber Events:")
+display(cyber_events_clean.isnull().sum())
+display("Epoch AI:")
+display(epoch_ai_clean.isnull().sum())
 
 
 # ## Resources and References
