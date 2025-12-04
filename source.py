@@ -41,15 +41,21 @@
 # <br>
 # #### <span style = 'color:green'>ChatGPT's public release was November of 2022 we will use that as a data point to compare metrics before and after wide spread AI availability. The Global Cybersecurity Threats dataset provides volume and attack type trends, the Cyber Events Database shows incident level context on motives and actors, and the AI Incident Database identifies specific cases of AI use allowing us to try and correlate AI availability with changes in cybercrime patterns.</span>
 
-# In[2]:
+# In[110]:
 
 
 # Imports
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.express as px
+from scipy import stats
 
 
-# In[3]:
+# In[90]:
 
 
 # Load datasets
@@ -67,7 +73,7 @@ cyber_events = pd.read_csv('data/CISSM_Cyber_Events_Database_2014_Oct_2025.csv')
 epoch_ai_models = pd.read_csv('data/epoch_ai_models.csv')
 
 
-# In[4]:
+# In[91]:
 
 
 # Check first few rows of each dataset
@@ -85,7 +91,7 @@ display("Epoch AI Model Tracking")
 display(epoch_ai_models.head())
 
 
-# In[5]:
+# In[92]:
 
 
 # Get info about each dataset
@@ -105,7 +111,7 @@ display("Epoch AI Model Tracking Info")
 display(epoch_ai_models.info())
 
 
-# In[6]:
+# In[93]:
 
 
 # Count null or missing values
@@ -119,7 +125,7 @@ display("Epoch AI Model Tracking Missing Values")
 display(epoch_ai_models.isnull().sum())
 
 
-# In[ ]:
+# In[94]:
 
 
 # Data cleaning and preprocessing
@@ -204,12 +210,14 @@ display("Cleaned Global Cybersecurity Threats Dataset")
 display(cyber_threats_clean.head())
 display("Cleaned CISSM Cyber Events Dataset")
 display(cyber_events_clean.head())
+display("Cyber Events after removing duplicates:") 
+display(len(cyber_events_clean))
 display("Cleaned Epoch AI Models Dataset (Public Language Models)")
 display("Total models:", {len(epoch_ai_models)}, "Public models:", {len(epoch_public)}, "Public language models:", {len(epoch_ai_clean)})
 display(epoch_ai_clean.head())
 
 
-# In[13]:
+# In[95]:
 
 
 # Get info and check for missing values in cleaned datasets
@@ -235,7 +243,7 @@ display(epoch_ai_clean.info())
 display(epoch_ai_clean.isna().sum())
 
 
-# In[15]:
+# In[96]:
 
 
 # Begin exploratory data analysis 
@@ -285,7 +293,7 @@ display("Epoch AI Models - Top Organizations")
 display(epoch_ai_clean['organization'].value_counts().head(10))
 
 
-# In[18]:
+# In[97]:
 
 
 # Define analysis period and AI era
@@ -329,7 +337,7 @@ display("Public Language Model Releases by Year")
 display(epoch_ai_clean.groupby('year').size())
 
 
-# In[20]:
+# In[98]:
 
 
 # Try to understand impact and severity of incidents across eras
@@ -373,7 +381,7 @@ display("Epoch AI - Top Organizations by Era")
 display(epoch_ai_clean.groupby(['ai_era', 'organization']).size().reset_index(name='count').sort_values(['ai_era', 'count'], ascending=[True, False]).groupby('ai_era').head(5))
 
 
-# In[21]:
+# In[99]:
 
 
 # Check for duplicated data
@@ -383,7 +391,7 @@ display(f"Cyber Events duplicates: {cyber_events_clean.duplicated().sum()}")
 display(f"Epoch AI duplicates: {epoch_ai_clean.duplicated().sum()}")
 
 
-# In[23]:
+# In[100]:
 
 
 # Dig in Cyber Events duplicate values
@@ -397,8 +405,10 @@ display(f"Unique records: {len(cyber_events_clean) - cyber_events_clean.duplicat
 display("Sample duplicate rows:")
 display(cyber_events_clean[cyber_events_clean.duplicated(keep=False)].sort_values(['event_date', 'event_type']).head(10))
 
+# Modified code above to account for duplicates
 
-# In[22]:
+
+# In[101]:
 
 
 # Check missing values again after cleaning
@@ -411,11 +421,345 @@ display("Epoch AI:")
 display(epoch_ai_clean.isnull().sum())
 
 
+# In[102]:
+
+
+# Check for outliers for model parameters in Epoch AI dataset
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+epoch_ai_clean['parameters'].dropna().plot(kind='box', ax=axes[0], title='Model Parameters (raw)')
+epoch_ai_clean['parameters'].dropna().apply(np.log10).plot(kind='box', ax=axes[1], title='Model Parameters (log10)')
+
+plt.tight_layout()
+plt.show()
+
+
+# In[103]:
+
+
+# Histogram of events over time and distributions
+fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+# Events over time
+cyber_events_clean.groupby('year').size().plot(kind='bar', ax=axes[0,0], title='Cyber Events by Year')
+epoch_ai_clean.groupby('year').size().plot(kind='bar', ax=axes[0,1], title='AI Model Releases by Year')
+
+# Categorical distributions
+cyber_events_clean['event_type'].value_counts().plot(kind='barh', ax=axes[1,0], title='Cyber Event Types')
+epoch_ai_clean['accessibility'].value_counts().plot(kind='barh', ax=axes[1,1], title='Model Accessibility Types')
+
+plt.tight_layout()
+plt.show()
+
+
+# In[104]:
+
+
+# Correlation analysis between AI model releases and cyber events
+
+# Aggregate by year for correlation
+yearly_cyber = cyber_events_clean.groupby('year').size().rename('cyber_events')
+yearly_ai = epoch_ai_clean.groupby('year').size().rename('ai_models')
+yearly_ai_incidents = ai_incidents_clean.groupby('year').size().rename('ai_incidents')
+
+yearly_combined = pd.concat([yearly_cyber, yearly_ai, yearly_ai_incidents], axis=1).dropna()
+
+display("Yearly Aggregated Data")
+display(yearly_combined)
+
+display("Correlation Matrix")
+display(yearly_combined.corr())
+
+# Scatter matrix visualization
+from pandas.plotting import scatter_matrix
+scatter_matrix(yearly_combined, figsize=(10, 8), diagonal='hist')
+plt.suptitle('Correlation: Cyber Events vs AI Model Releases')
+plt.show()
+
+
+# In[105]:
+
+
+# Bar Chart Pre vs Post AI Era comparison
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+# Cyber events by era
+cyber_events_clean.groupby('ai_era').size().plot(kind='bar', ax=axes[0], title='Cyber Events by Era', color=['b', 'g'])
+axes[0].set_ylabel('Count')
+
+# AI model releases by era
+epoch_ai_clean.groupby('ai_era').size().plot(kind='bar', ax=axes[1], title='AI Model Releases by Era', color=['r', 'c'])
+axes[1].set_ylabel('Count')
+
+# AI incidents by era
+ai_incidents_clean.groupby('ai_era').size().plot(kind='bar', ax=axes[2], title='AI Incidents by Era', color=['y', 'm'])
+axes[2].set_ylabel('Count')
+
+plt.show()
+
+
+# In[106]:
+
+
+# Scatter plot with regression line
+
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.regplot(data=yearly_combined, x='ai_models', y='cyber_events', ax=ax)
+# Cyber events to AI model releases correlation
+ax.set_title(f'AI Model Releases vs Cyber Events (r = 0.744)')
+ax.set_xlabel('Public AI Model Releases')
+ax.set_ylabel('Cyber Events')
+
+# Annotate key years
+for year in yearly_combined.index:
+    ax.annotate(str(year), (yearly_combined.loc[year, 'ai_models'], yearly_combined.loc[year, 'cyber_events']))
+
+plt.show()
+
+
+# In[107]:
+
+
+# Distribution chart of time series with ChatGPT release marked
+fig, ax1 = plt.subplots(figsize=(12, 6))
+
+# Cyber events line
+ax1.set_xlabel('Year')
+ax1.set_ylabel('Cyber Events', color='tab:red')
+ax1.plot(yearly_combined.index, yearly_combined['cyber_events'], color='tab:red', marker='o', label='Cyber Events')
+ax1.tick_params(axis='y', labelcolor='tab:red')
+
+# AI models line (secondary axis)
+ax2 = ax1.twinx()
+ax2.set_ylabel('AI Model Releases', color='tab:blue')
+ax2.plot(yearly_combined.index, yearly_combined['ai_models'], color='tab:blue', marker='s', label='AI Models')
+ax2.tick_params(axis='y', labelcolor='tab:blue')
+
+# Mark ChatGPT release
+ax1.axvline(x=2022, color='g', linestyle='--', linewidth=2, label='ChatGPT Release (Nov 2022)')
+
+plt.title('Cyber Events and AI Model Releases Over Time')
+fig.legend(loc='upper left', bbox_to_anchor=(0.09, 0.9))
+plt.tight_layout()
+plt.show()
+
+
+# In[108]:
+
+
+# Attack types pre vs post AI era
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+cyber_events_clean[cyber_events_clean['ai_era'] == 'pre']['event_type'].value_counts().plot(
+    kind='pie', ax=axes[0], title='Cyber Event Types Pre AI Era', autopct='%1.1f%%')
+axes[0].set_ylabel('')
+
+cyber_events_clean[cyber_events_clean['ai_era'] == 'post']['event_type'].value_counts().plot(
+    kind='pie', ax=axes[1], title='Cyber Event Types Post AI Era', autopct='%1.1f%%')
+axes[1].set_ylabel('')
+
+plt.tight_layout()
+plt.show()
+
+
+# In[122]:
+
+
+# Dual axis time series with ChatGPT release marked
+
+# Reset index if 'year' is the index
+if 'year' not in yearly_combined.columns:
+    yearly_combined = yearly_combined.reset_index()
+
+# Create figure with secondary y-axis
+fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+# Add cyber events trace
+fig.add_trace(
+    go.Scatter(
+        x=yearly_combined['year'], 
+        y=yearly_combined['cyber_events'],
+        name="Cyber Events",
+        line=dict(color='red', width=3),
+        mode='lines+markers',
+        marker=dict(size=10),
+        hovertemplate='<b>Year:</b> %{x}<br><b>Cyber Events:</b> %{y}<extra></extra>'
+    ),
+    secondary_y=False,
+)
+
+# Add AI models trace
+fig.add_trace(
+    go.Scatter(
+        x=yearly_combined['year'], 
+        y=yearly_combined['ai_models'],
+        name="AI Model Releases",
+        line=dict(color='blue', width=3),
+        mode='lines+markers',
+        marker=dict(size=10),
+        hovertemplate='<b>Year:</b> %{x}<br><b>AI Models:</b> %{y}<extra></extra>'
+    ),
+    secondary_y=True,
+)
+
+# Add vertical line for ChatGPT release (Nov 2022)
+fig.add_vline(x=2022, line_dash="dash", line_color="green", line_width=2,
+              annotation_text="ChatGPT Release", annotation_position="top")
+
+# Add shaded region for post-AI era
+fig.add_vrect(x0=2023, x1=yearly_combined['year'].max(), 
+              fillcolor="lightgreen", opacity=0.2, line_width=0,
+              annotation_text="Post-AI Era", annotation_position="top left")
+
+# Update layout
+fig.update_layout(
+    title=dict(
+        text='<b>Cyber Events vs AI Model Releases Over Time</b>',
+        font=dict(size=18)
+    ),
+    xaxis_title="Year",
+    legend=dict(x=0.01, y=0.99, bgcolor='rgba(255,255,255,0.8)'),
+    hovermode='x unified',
+    template='plotly_white',
+    height=500
+)
+
+# Set y-axes titles
+fig.update_yaxes(title_text="<b>Cyber Events</b>", secondary_y=False, color='red')
+fig.update_yaxes(title_text="<b>AI Model Releases</b>", secondary_y=True, color='blue')
+
+fig.show()
+
+
+# In[120]:
+
+
+# Scatter plot with regression line using Plotly
+
+# Reset index if needed
+if 'year' not in yearly_combined.columns:
+    yearly_combined = yearly_combined.reset_index()
+
+# Add ai_era column if it doesn't exist
+if 'ai_era' not in yearly_combined.columns:
+    yearly_combined['ai_era'] = np.where(yearly_combined['year'] >= 2023, 'post', 'pre')
+
+# Calculate regression line
+slope, intercept, r_value, p_value, std_err = stats.linregress(
+    yearly_combined['ai_models'], 
+    yearly_combined['cyber_events']
+)
+
+# Create scatter plot
+fig = px.scatter(
+    yearly_combined, 
+    x='ai_models', 
+    y='cyber_events',
+    text='year',
+    color='ai_era',
+    color_discrete_map={'pre': 'blue', 'post': 'red'},
+    labels={
+        'ai_models': 'Public AI Model Releases',
+        'cyber_events': 'Cyber Events',
+        'ai_era': 'AI Era'
+    },
+    title=f'<b>Correlation: AI Model Releases vs Cyber Events</b><br><sup>r = {r_value:.3f}, p = {p_value:.4f}</sup>'
+)
+
+# Add regression line
+x_range = np.array([yearly_combined['ai_models'].min(), yearly_combined['ai_models'].max()])
+y_pred = slope * x_range + intercept
+
+fig.add_trace(
+    go.Scatter(
+        x=x_range, 
+        y=y_pred,
+        mode='lines',
+        name=f'Regression (r={r_value:.3f})',
+        line=dict(color='gray', dash='dash', width=2)
+    )
+)
+
+# Update marker styling
+fig.update_traces(
+    marker=dict(size=14, line=dict(width=2, color='white')),
+    textposition='top center',
+    selector=dict(mode='markers+text')
+)
+
+# Update layout
+fig.update_layout(
+    template='plotly_white',
+    height=500,
+    legend=dict(x=0.01, y=0.99),
+    hovermode='closest'
+)
+
+# Update hover template for scatter points
+fig.update_traces(
+    hovertemplate='<b>Year:</b> %{text}<br><b>AI Models:</b> %{x}<br><b>Cyber Events:</b> %{y}<extra></extra>',
+    selector=dict(mode='markers+text')
+)
+
+fig.show()
+
+
+# In[1]:
+
+
+import plotly.express as px
+
+# Aggregate by year and industry
+industry_by_year = cyber_events_clean.groupby(['year', 'industry']).size().reset_index(name='count')
+
+# Filter to analysis period (2015+)
+industry_by_year = industry_by_year[industry_by_year['year'] >= 2015]
+
+# Truncate industry names to 20 characters using str accessor
+industry_by_year['industry_short'] = industry_by_year['industry'].str[:20]
+
+# Get top 10 industries overall (to keep chart readable)
+top_industries = cyber_events_clean['industry'].value_counts().head(10).index.tolist()
+industry_by_year_top = industry_by_year[industry_by_year['industry'].isin(top_industries)]
+
+# Create interactive line chart
+fig = px.line(
+    industry_by_year_top,
+    x='year',
+    y='count',
+    color='industry_short',
+    markers=True,
+    title='<b>Industries Targeted by Cyber Attacks Over Time</b><br><sup>Top 10 most targeted industries (2015-present)</sup>',
+    labels={'count': 'Number of Events', 'year': 'Year', 'industry_short': 'Industry'}
+)
+
+# Add ChatGPT release marker
+fig.add_vline(x=2022, line_dash="dash", line_color="red", line_width=2,
+              annotation_text="ChatGPT Release", annotation_position="top left")
+
+# Add shaded post-AI era
+fig.add_vrect(x0=2023, x1=industry_by_year_top['year'].max(),
+              fillcolor="lightcoral", opacity=0.15, line_width=0)
+
+fig.update_layout(
+    template='plotly_white',
+    height=550,
+    hovermode='x unified',
+    legend=dict(title='Industry', y=0.5)
+)
+
+fig.update_traces(line=dict(width=2.5), marker=dict(size=8))
+
+fig.show()
+
+
 # ## Resources and References
 # *What resources and references have you used for this project?*
 # 📝 <!-- Answer Below -->
 
-# In[12]:
+# In[ ]:
 
 
 # ⚠️ Make sure you run this cell at the end of your notebook before every submission!
