@@ -41,7 +41,7 @@
 # <br>
 # #### <span style = 'color:green'>ChatGPT's public release was November of 2022 we will use that as a data point to compare metrics before and after wide spread AI availability. The Global Cybersecurity Threats dataset provides volume and attack type trends, the Cyber Events Database shows incident level context on motives and actors, and the AI Incident Database identifies specific cases of AI use allowing us to try and correlate AI availability with changes in cybercrime patterns.</span>
 
-# In[110]:
+# In[32]:
 
 
 # Imports
@@ -53,9 +53,18 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
 from scipy import stats
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import mean_squared_error, accuracy_score, classification_report
 
 
-# In[90]:
+# In[3]:
 
 
 # Load datasets
@@ -73,7 +82,7 @@ cyber_events = pd.read_csv('data/CISSM_Cyber_Events_Database_2014_Oct_2025.csv')
 epoch_ai_models = pd.read_csv('data/epoch_ai_models.csv')
 
 
-# In[91]:
+# In[4]:
 
 
 # Check first few rows of each dataset
@@ -91,7 +100,7 @@ display("Epoch AI Model Tracking")
 display(epoch_ai_models.head())
 
 
-# In[92]:
+# In[5]:
 
 
 # Get info about each dataset
@@ -111,7 +120,7 @@ display("Epoch AI Model Tracking Info")
 display(epoch_ai_models.info())
 
 
-# In[93]:
+# In[6]:
 
 
 # Count null or missing values
@@ -125,7 +134,7 @@ display("Epoch AI Model Tracking Missing Values")
 display(epoch_ai_models.isnull().sum())
 
 
-# In[94]:
+# In[7]:
 
 
 # Data cleaning and preprocessing
@@ -217,7 +226,7 @@ display("Total models:", {len(epoch_ai_models)}, "Public models:", {len(epoch_pu
 display(epoch_ai_clean.head())
 
 
-# In[95]:
+# In[8]:
 
 
 # Get info and check for missing values in cleaned datasets
@@ -243,7 +252,7 @@ display(epoch_ai_clean.info())
 display(epoch_ai_clean.isna().sum())
 
 
-# In[96]:
+# In[9]:
 
 
 # Begin exploratory data analysis 
@@ -293,7 +302,7 @@ display("Epoch AI Models - Top Organizations")
 display(epoch_ai_clean['organization'].value_counts().head(10))
 
 
-# In[97]:
+# In[10]:
 
 
 # Define analysis period and AI era
@@ -337,7 +346,7 @@ display("Public Language Model Releases by Year")
 display(epoch_ai_clean.groupby('year').size())
 
 
-# In[98]:
+# In[11]:
 
 
 # Try to understand impact and severity of incidents across eras
@@ -381,7 +390,7 @@ display("Epoch AI - Top Organizations by Era")
 display(epoch_ai_clean.groupby(['ai_era', 'organization']).size().reset_index(name='count').sort_values(['ai_era', 'count'], ascending=[True, False]).groupby('ai_era').head(5))
 
 
-# In[99]:
+# In[12]:
 
 
 # Check for duplicated data
@@ -391,7 +400,7 @@ display(f"Cyber Events duplicates: {cyber_events_clean.duplicated().sum()}")
 display(f"Epoch AI duplicates: {epoch_ai_clean.duplicated().sum()}")
 
 
-# In[100]:
+# In[13]:
 
 
 # Dig in Cyber Events duplicate values
@@ -408,7 +417,7 @@ display(cyber_events_clean[cyber_events_clean.duplicated(keep=False)].sort_value
 # Modified code above to account for duplicates
 
 
-# In[101]:
+# In[14]:
 
 
 # Check missing values again after cleaning
@@ -421,7 +430,7 @@ display("Epoch AI:")
 display(epoch_ai_clean.isnull().sum())
 
 
-# In[102]:
+# In[15]:
 
 
 # Check for outliers for model parameters in Epoch AI dataset
@@ -436,7 +445,7 @@ plt.tight_layout()
 plt.show()
 
 
-# In[103]:
+# In[16]:
 
 
 # Histogram of events over time and distributions
@@ -454,7 +463,7 @@ plt.tight_layout()
 plt.show()
 
 
-# In[104]:
+# In[17]:
 
 
 # Correlation analysis between AI model releases and cyber events
@@ -479,7 +488,7 @@ plt.suptitle('Correlation: Cyber Events vs AI Model Releases')
 plt.show()
 
 
-# In[105]:
+# In[18]:
 
 
 # Bar Chart Pre vs Post AI Era comparison
@@ -500,7 +509,7 @@ axes[2].set_ylabel('Count')
 plt.show()
 
 
-# In[106]:
+# In[19]:
 
 
 # Scatter plot with regression line
@@ -519,7 +528,7 @@ for year in yearly_combined.index:
 plt.show()
 
 
-# In[107]:
+# In[20]:
 
 
 # Distribution chart of time series with ChatGPT release marked
@@ -546,7 +555,7 @@ plt.tight_layout()
 plt.show()
 
 
-# In[108]:
+# In[21]:
 
 
 # Attack types pre vs post AI era
@@ -564,7 +573,7 @@ plt.tight_layout()
 plt.show()
 
 
-# In[122]:
+# In[ ]:
 
 
 # Dual axis time series with ChatGPT release marked
@@ -604,7 +613,7 @@ fig.add_trace(
     secondary_y=True,
 )
 
-# Add vertical line for ChatGPT release (Nov 2022)
+# Add vertical line for ChatGPT release
 fig.add_vline(x=2022, line_dash="dash", line_color="green", line_width=2,
               annotation_text="ChatGPT Release", annotation_position="top")
 
@@ -633,7 +642,7 @@ fig.update_yaxes(title_text="<b>AI Model Releases</b>", secondary_y=True, color=
 fig.show()
 
 
-# In[120]:
+# In[23]:
 
 
 # Scatter plot with regression line using Plotly
@@ -706,10 +715,10 @@ fig.update_traces(
 fig.show()
 
 
-# In[1]:
+# In[31]:
 
 
-import plotly.express as px
+# Line Chart of Industries Targeted by Cyber Attacks Over Time
 
 # Aggregate by year and industry
 industry_by_year = cyber_events_clean.groupby(['year', 'industry']).size().reset_index(name='count')
@@ -717,11 +726,12 @@ industry_by_year = cyber_events_clean.groupby(['year', 'industry']).size().reset
 # Filter to analysis period (2015+)
 industry_by_year = industry_by_year[industry_by_year['year'] >= 2015]
 
-# Truncate industry names to 20 characters using str accessor
-industry_by_year['industry_short'] = industry_by_year['industry'].str[:20]
+# Truncate industry names to 20 characters and add ... 
+industry_by_year['industry_short'] = industry_by_year['industry'].str[:20] + \
+    industry_by_year['industry'].str.len().gt(20).map({True: '...', False: ''})
 
-# Get top 10 industries overall (to keep chart readable)
-top_industries = cyber_events_clean['industry'].value_counts().head(10).index.tolist()
+# Get top 8 industries overall (to keep chart readable)
+top_industries = cyber_events_clean['industry'].value_counts().head(8).index.tolist()
 industry_by_year_top = industry_by_year[industry_by_year['industry'].isin(top_industries)]
 
 # Create interactive line chart
@@ -731,7 +741,7 @@ fig = px.line(
     y='count',
     color='industry_short',
     markers=True,
-    title='<b>Industries Targeted by Cyber Attacks Over Time</b><br><sup>Top 10 most targeted industries (2015-present)</sup>',
+    title='<b>Industries Targeted by Cyber Attacks Over Time</b><br><sup>Top 8 most targeted industries (2015-present)</sup>',
     labels={'count': 'Number of Events', 'year': 'Year', 'industry_short': 'Industry'}
 )
 
@@ -739,13 +749,10 @@ fig = px.line(
 fig.add_vline(x=2022, line_dash="dash", line_color="red", line_width=2,
               annotation_text="ChatGPT Release", annotation_position="top left")
 
-# Add shaded post-AI era
-fig.add_vrect(x0=2023, x1=industry_by_year_top['year'].max(),
-              fillcolor="lightcoral", opacity=0.15, line_width=0)
 
 fig.update_layout(
     template='plotly_white',
-    height=550,
+    height=500,
     hovermode='x unified',
     legend=dict(title='Industry', y=0.5)
 )
@@ -755,11 +762,178 @@ fig.update_traces(line=dict(width=2.5), marker=dict(size=8))
 fig.show()
 
 
+# In[45]:
+
+
+# Prepare event-level data for classification
+# Filter to analysis period (2015+)
+cyber_ml = cyber_events_clean[cyber_events_clean['year'] >= 2015].copy()
+
+# Create target variable for ai_era 
+cyber_ml['ai_era'] = np.where(cyber_ml['year'] >= 2023, 'post', 'pre')
+
+# Check the data
+display("Dataset shape:", cyber_ml.shape)
+display("Target distribution:")
+display(cyber_ml['ai_era'].value_counts())
+cyber_ml.head()
+
+
+# In[46]:
+
+
+# Separate features and target
+feature_cols = ['event_type', 'actor_type', 'motive', 'industry']
+
+# Drop rows with missing values in our feature columns
+cyber_ml_clean = cyber_ml.dropna(subset=feature_cols)
+
+cyber_X = cyber_ml_clean[feature_cols]
+cyber_y = cyber_ml_clean['ai_era']
+
+display("Features shape:", cyber_X.shape)
+display("Target shape:", cyber_y.shape)
+
+
+# In[47]:
+
+
+# Stratified train/test split
+X_train, X_test, y_train, y_test = train_test_split(
+    cyber_X, cyber_y, 
+    test_size=0.2, 
+    random_state=42, 
+    stratify=cyber_y
+)
+
+display("Training set size:", len(X_train))
+display("Test set size:", len(X_test))
+display("Training target distribution:")
+display(y_train.value_counts())
+
+
+# In[49]:
+
+
+# Define numeric and categorical features
+cat_features = ['event_type', 'actor_type', 'motive', 'industry']
+
+# Categorical pipeline
+cat_pipeline = Pipeline([
+    ('imputer', SimpleImputer(strategy='constant', fill_value='Unknown')),
+    ('one-hot-encode', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Full pipeline using ColumnTransformer
+full_pipeline = ColumnTransformer([
+    ('cat', cat_pipeline, cat_features)
+])
+
+# Transform the training data
+X_train_prepared = full_pipeline.fit_transform(X_train)
+display("Transformed training data shape:", X_train_prepared.shape)
+
+
+# In[50]:
+
+
+# Model 1: Logistic Regression
+log_reg = LogisticRegression(max_iter=1000, random_state=42)
+log_reg.fit(X_train_prepared, y_train)
+
+# Predictions on training data
+predictions = log_reg.predict(X_train_prepared)
+train_accuracy = accuracy_score(y_train, predictions)
+display("Logistic Regression Training Accuracy:", train_accuracy)
+
+# Model 2: Decision Tree
+tree_clf = DecisionTreeClassifier(random_state=42)
+tree_clf.fit(X_train_prepared, y_train)
+
+predictions = tree_clf.predict(X_train_prepared)
+tree_train_accuracy = accuracy_score(y_train, predictions)
+display("Decision Tree Training Accuracy:", tree_train_accuracy)
+
+# Model 3: Random Forest
+forest_clf = RandomForestClassifier(n_estimators=100, random_state=42)
+forest_clf.fit(X_train_prepared, y_train)
+
+predictions = forest_clf.predict(X_train_prepared)
+forest_train_accuracy = accuracy_score(y_train, predictions)
+display("Random Forest Training Accuracy:", forest_train_accuracy)
+
+
+# In[53]:
+
+
+# Cross validation for Logistic Regression
+
+log_scores = cross_val_score(log_reg, X_train_prepared, y_train, cv=5, scoring='accuracy')
+display("Logistic Regression CV Scores:", log_scores)
+display("Mean:", log_scores.mean())
+display("Std:", log_scores.std())
+
+# Cross validation for Decision Tree
+tree_scores = cross_val_score(tree_clf, X_train_prepared, y_train, cv=5, scoring='accuracy')
+display("Decision Tree CV Scores:", tree_scores)
+display("Mean:", tree_scores.mean())
+display("Std:", tree_scores.std())
+
+# Cross validation for Random Forest
+forest_scores = cross_val_score(forest_clf, X_train_prepared, y_train, cv=5, scoring='accuracy')
+display("Random Forest CV Scores:", forest_scores)
+display("Mean:", forest_scores.mean())
+display("Std:", forest_scores.std())
+
+
+# In[58]:
+
+
+# Evaluate on test set
+X_test_prepared = full_pipeline.transform(X_test)
+
+# Logistic Regression on test set
+predictions_log = log_reg.predict(X_test_prepared)
+log_test_accuracy = accuracy_score(y_test, predictions_log)
+display("Logistic Regression Test Accuracy:", log_test_accuracy)
+
+# Decision Tree on test set
+predictions_tree = tree_clf.predict(X_test_prepared)
+tree_test_accuracy = accuracy_score(y_test, predictions_tree)
+display("Decision Tree Test Accuracy:", tree_test_accuracy)
+
+# Random Forest on test set
+predictions_forest = forest_clf.predict(X_test_prepared)
+forest_test_accuracy = accuracy_score(y_test, predictions_forest)
+display("Random Forest Test Accuracy:", forest_test_accuracy)
+
+# Detailed classification report for best model
+display("Classification Report (Random Forest):")
+display(classification_report(y_test, predictions_forest))
+
+# Summary comparison (like comparing lin_rmse, poly_rmse, tree_rmse in sandbox)
+display("="*50)
+display("MODEL COMPARISON SUMMARY")
+display("="*50)
+display(f"{'Model':<25} {'CV Mean':<12} {'CV Std':<12} {'Test Acc':<12}")
+display("-"*50)
+display(f"{'Logistic Regression':<25} {log_scores.mean():<12.4f} {log_scores.std():<12.4f} {log_test_accuracy:<12.4f}")
+display(f"{'Decision Tree':<25} {tree_scores.mean():<12.4f} {tree_scores.std():<12.4f} {tree_test_accuracy:<12.4f}")
+display(f"{'Random Forest':<25} {forest_scores.mean():<12.4f} {forest_scores.std():<12.4f} {forest_test_accuracy:<12.4f}")
+
+
 # ## Resources and References
 # *What resources and references have you used for this project?*
 # 📝 <!-- Answer Below -->
+# 
+# * https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html
+# * https://www.w3schools.com/python/pandas/ref_df_corr.asp
+# * https://docs.scipy.org/doc/scipy/reference/main_namespace.html 
+# * https://wesmckinney.com/book/ 
+# * https://jakevdp.github.io/PythonDataScienceHandbook/
+# * https://github.com/IT4063C-Fall22/Sandbox/blob/e2e/sandbox.ipynb 
 
-# In[ ]:
+# In[25]:
 
 
 # ⚠️ Make sure you run this cell at the end of your notebook before every submission!
