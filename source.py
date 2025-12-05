@@ -41,7 +41,9 @@
 # <br>
 # #### <span style = 'color:green'>ChatGPT's public release was November of 2022 we will use that as a data point to compare metrics before and after wide spread AI availability. The Global Cybersecurity Threats dataset provides volume and attack type trends, the Cyber Events Database shows incident level context on motives and actors, and the AI Incident Database identifies specific cases of AI use allowing us to try and correlate AI availability with changes in cybercrime patterns.</span>
 
-# In[32]:
+# # Imports and Data Loading
+
+# In[59]:
 
 
 # Imports
@@ -64,7 +66,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import mean_squared_error, accuracy_score, classification_report
 
 
-# In[3]:
+# In[60]:
 
 
 # Load datasets
@@ -82,7 +84,12 @@ cyber_events = pd.read_csv('data/CISSM_Cyber_Events_Database_2014_Oct_2025.csv')
 epoch_ai_models = pd.read_csv('data/epoch_ai_models.csv')
 
 
-# In[4]:
+# ---
+# # Initial Data Analysis
+
+# #### View first few rows of each dataset
+
+# In[61]:
 
 
 # Check first few rows of each dataset
@@ -100,7 +107,9 @@ display("Epoch AI Model Tracking")
 display(epoch_ai_models.head())
 
 
-# In[5]:
+# #### View shape and column info of our datasets
+
+# In[62]:
 
 
 # Get info about each dataset
@@ -120,7 +129,9 @@ display("Epoch AI Model Tracking Info")
 display(epoch_ai_models.info())
 
 
-# In[6]:
+# #### Check for null or missing values with our datasets
+
+# In[63]:
 
 
 # Count null or missing values
@@ -134,7 +145,21 @@ display("Epoch AI Model Tracking Missing Values")
 display(epoch_ai_models.isnull().sum())
 
 
-# In[7]:
+# ---
+# # Data Preparation and Cleaning
+
+# In this section, we prepare each dataset for analysis by performing the following operations:
+# 
+# | Operation | Reason |
+# |-----------|---------|
+# | **DateTime conversion** | Enable temporal filtering and time-series analysis |
+# | **Year/month extraction** | Allow aggregation by time periods for trend analysis |
+# | **Column selection** | Retain only features relevant to our research question |
+# | **Duplicate removal** | Ensure data quality and accurate event counts |
+# | **Filtering (Epoch AI)** | Focus on publicly accessible language models, which are most relevant to AI-enabled cybercrime|
+# | **Column renaming** | Create consistency across datasets for easier merging |
+
+# In[64]:
 
 
 # Data cleaning and preprocessing
@@ -226,7 +251,9 @@ display("Total models:", {len(epoch_ai_models)}, "Public models:", {len(epoch_pu
 display(epoch_ai_clean.head())
 
 
-# In[8]:
+# #### After cleaning, we verify the quality of our prepared datasets by checking the shape, viewing info and rechecing for null values
+
+# In[65]:
 
 
 # Get info and check for missing values in cleaned datasets
@@ -252,7 +279,12 @@ display(epoch_ai_clean.info())
 display(epoch_ai_clean.isna().sum())
 
 
-# In[9]:
+# ---
+# # Exploratory Data Analysis (EDA)
+
+# #### Post cleaning validation, recheck the shape, info and null values
+
+# In[66]:
 
 
 # Begin exploratory data analysis 
@@ -302,7 +334,18 @@ display("Epoch AI Models - Top Organizations")
 display(epoch_ai_clean['organization'].value_counts().head(10))
 
 
-# In[10]:
+# 
+# #### Defining the Analysis Framework
+# To answer my research question, I establish a clear boundary between the **pre-AI era** (2015-2022) and **post-AI era** (2023+), based on ChatGPT's public release in November 2022.
+# 
+# This allows me to:
+# - Compare cyber event patterns before and after widespread AI accessibility
+# - Create a classification target for machine learning models
+# - Standardize the analysis window (2015-present) across all datasets
+# 
+# **Note:** The post-AI era has limited data (2023+), which is a limitation of this analysis.
+
+# In[67]:
 
 
 # Define analysis period and AI era
@@ -346,7 +389,18 @@ display("Public Language Model Releases by Year")
 display(epoch_ai_clean.groupby('year').size())
 
 
-# In[11]:
+# #### Comparative Analysis: Pre-AI vs Post-AI Era
+# With the AI era boundary defined, I compare key metrics across eras to identify potential shifts in cybercrime patterns.
+# 
+# **Key comparisons:**
+# - Financial impact and affected users
+# - Attack type distributions
+# - Actor types and motives
+# - AI model availability and accessibility
+# 
+# **Note:** During this analysis, I identified that the Global Cybersecurity Threats dataset appears to contain generated data based on uniform distributions. We will rely primarily on the CISSM Cyber Events Database and Epoch AI datasets for my conclusions.
+
+# In[68]:
 
 
 # Try to understand impact and severity of incidents across eras
@@ -390,7 +444,10 @@ display("Epoch AI - Top Organizations by Era")
 display(epoch_ai_clean.groupby(['ai_era', 'organization']).size().reset_index(name='count').sort_values(['ai_era', 'count'], ascending=[True, False]).groupby('ai_era').head(5))
 
 
-# In[12]:
+# #### Data Quality Checks (again)
+# Before proceeding to correlation analysis, I verify data quality across all datasets by checking for remaining duplicates and missing values. Note: Duplicates were previously removed from CISSM Cyber Events but not yet checked in other datasets.
+
+# In[90]:
 
 
 # Check for duplicated data
@@ -400,7 +457,7 @@ display(f"Cyber Events duplicates: {cyber_events_clean.duplicated().sum()}")
 display(f"Epoch AI duplicates: {epoch_ai_clean.duplicated().sum()}")
 
 
-# In[13]:
+# In[ ]:
 
 
 # Dig in Cyber Events duplicate values
@@ -414,10 +471,8 @@ display(f"Unique records: {len(cyber_events_clean) - cyber_events_clean.duplicat
 display("Sample duplicate rows:")
 display(cyber_events_clean[cyber_events_clean.duplicated(keep=False)].sort_values(['event_date', 'event_type']).head(10))
 
-# Modified code above to account for duplicates
 
-
-# In[14]:
+# In[71]:
 
 
 # Check missing values again after cleaning
@@ -430,7 +485,7 @@ display("Epoch AI:")
 display(epoch_ai_clean.isnull().sum())
 
 
-# In[15]:
+# In[72]:
 
 
 # Check for outliers for model parameters in Epoch AI dataset
@@ -445,7 +500,7 @@ plt.tight_layout()
 plt.show()
 
 
-# In[16]:
+# In[73]:
 
 
 # Histogram of events over time and distributions
@@ -463,7 +518,7 @@ plt.tight_layout()
 plt.show()
 
 
-# In[17]:
+# In[74]:
 
 
 # Correlation analysis between AI model releases and cyber events
@@ -488,7 +543,7 @@ plt.suptitle('Correlation: Cyber Events vs AI Model Releases')
 plt.show()
 
 
-# In[18]:
+# In[75]:
 
 
 # Bar Chart Pre vs Post AI Era comparison
@@ -509,7 +564,7 @@ axes[2].set_ylabel('Count')
 plt.show()
 
 
-# In[19]:
+# In[76]:
 
 
 # Scatter plot with regression line
@@ -528,7 +583,7 @@ for year in yearly_combined.index:
 plt.show()
 
 
-# In[20]:
+# In[77]:
 
 
 # Distribution chart of time series with ChatGPT release marked
@@ -555,7 +610,7 @@ plt.tight_layout()
 plt.show()
 
 
-# In[21]:
+# In[78]:
 
 
 # Attack types pre vs post AI era
@@ -573,7 +628,7 @@ plt.tight_layout()
 plt.show()
 
 
-# In[ ]:
+# In[79]:
 
 
 # Dual axis time series with ChatGPT release marked
@@ -642,7 +697,7 @@ fig.update_yaxes(title_text="<b>AI Model Releases</b>", secondary_y=True, color=
 fig.show()
 
 
-# In[23]:
+# In[80]:
 
 
 # Scatter plot with regression line using Plotly
@@ -715,7 +770,7 @@ fig.update_traces(
 fig.show()
 
 
-# In[31]:
+# In[81]:
 
 
 # Line Chart of Industries Targeted by Cyber Attacks Over Time
@@ -762,7 +817,7 @@ fig.update_traces(line=dict(width=2.5), marker=dict(size=8))
 fig.show()
 
 
-# In[45]:
+# In[82]:
 
 
 # Prepare event-level data for classification
@@ -779,7 +834,7 @@ display(cyber_ml['ai_era'].value_counts())
 cyber_ml.head()
 
 
-# In[46]:
+# In[83]:
 
 
 # Separate features and target
@@ -795,7 +850,7 @@ display("Features shape:", cyber_X.shape)
 display("Target shape:", cyber_y.shape)
 
 
-# In[47]:
+# In[84]:
 
 
 # Stratified train/test split
@@ -812,7 +867,7 @@ display("Training target distribution:")
 display(y_train.value_counts())
 
 
-# In[49]:
+# In[85]:
 
 
 # Define numeric and categorical features
@@ -834,7 +889,7 @@ X_train_prepared = full_pipeline.fit_transform(X_train)
 display("Transformed training data shape:", X_train_prepared.shape)
 
 
-# In[50]:
+# In[86]:
 
 
 # Model 1: Logistic Regression
@@ -863,7 +918,7 @@ forest_train_accuracy = accuracy_score(y_train, predictions)
 display("Random Forest Training Accuracy:", forest_train_accuracy)
 
 
-# In[53]:
+# In[87]:
 
 
 # Cross validation for Logistic Regression
@@ -886,7 +941,7 @@ display("Mean:", forest_scores.mean())
 display("Std:", forest_scores.std())
 
 
-# In[58]:
+# In[88]:
 
 
 # Evaluate on test set
@@ -933,7 +988,7 @@ display(f"{'Random Forest':<25} {forest_scores.mean():<12.4f} {forest_scores.std
 # * https://jakevdp.github.io/PythonDataScienceHandbook/
 # * https://github.com/IT4063C-Fall22/Sandbox/blob/e2e/sandbox.ipynb 
 
-# In[25]:
+# In[89]:
 
 
 # ⚠️ Make sure you run this cell at the end of your notebook before every submission!
