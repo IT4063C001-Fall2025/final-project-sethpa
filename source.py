@@ -43,7 +43,7 @@
 
 # # Imports and Data Loading
 
-# In[59]:
+# In[45]:
 
 
 # Imports
@@ -66,7 +66,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import mean_squared_error, accuracy_score, classification_report
 
 
-# In[60]:
+# In[46]:
 
 
 # Load datasets
@@ -87,9 +87,9 @@ epoch_ai_models = pd.read_csv('data/epoch_ai_models.csv')
 # ---
 # # Initial Data Analysis
 
-# #### View first few rows of each dataset
+# View first few rows of each dataset
 
-# In[61]:
+# In[47]:
 
 
 # Check first few rows of each dataset
@@ -107,9 +107,9 @@ display("Epoch AI Model Tracking")
 display(epoch_ai_models.head())
 
 
-# #### View shape and column info of our datasets
+# View shape and column info of our datasets
 
-# In[62]:
+# In[48]:
 
 
 # Get info about each dataset
@@ -129,9 +129,9 @@ display("Epoch AI Model Tracking Info")
 display(epoch_ai_models.info())
 
 
-# #### Check for null or missing values with our datasets
+# Check for null or missing values with our datasets
 
-# In[63]:
+# In[49]:
 
 
 # Count null or missing values
@@ -159,7 +159,7 @@ display(epoch_ai_models.isnull().sum())
 # | **Filtering (Epoch AI)** | Focus on publicly accessible language models, which are most relevant to AI-enabled cybercrime|
 # | **Column renaming** | Create consistency across datasets for easier merging |
 
-# In[64]:
+# In[50]:
 
 
 # Data cleaning and preprocessing
@@ -251,9 +251,9 @@ display("Total models:", {len(epoch_ai_models)}, "Public models:", {len(epoch_pu
 display(epoch_ai_clean.head())
 
 
-# #### After cleaning, we verify the quality of our prepared datasets by checking the shape, viewing info and rechecing for null values
+# After cleaning, verify the quality of our prepared datasets by checking the shape, viewing info and rechecing for null values
 
-# In[65]:
+# In[51]:
 
 
 # Get info and check for missing values in cleaned datasets
@@ -282,9 +282,9 @@ display(epoch_ai_clean.isna().sum())
 # ---
 # # Exploratory Data Analysis (EDA)
 
-# #### Post cleaning validation, recheck the shape, info and null values
+# Explore temporal coverage, yearly trends, and categorical distributions across all datasets
 
-# In[66]:
+# In[52]:
 
 
 # Begin exploratory data analysis 
@@ -345,7 +345,7 @@ display(epoch_ai_clean['organization'].value_counts().head(10))
 # 
 # **Note:** The post-AI era has limited data (2023+), which is a limitation of this analysis.
 
-# In[67]:
+# In[53]:
 
 
 # Define analysis period and AI era
@@ -398,9 +398,9 @@ display(epoch_ai_clean.groupby('year').size())
 # - Actor types and motives
 # - AI model availability and accessibility
 # 
-# **Note:** During this analysis, I identified that the Global Cybersecurity Threats dataset appears to contain generated data based on uniform distributions. We will rely primarily on the CISSM Cyber Events Database and Epoch AI datasets for my conclusions.
+# **Note:** During this analysis, I identified that the Global Cybersecurity Threats dataset appears to contain generated data based on uniform distributions. I'll rely primarily on the CISSM Cyber Events Database and Epoch AI datasets for my conclusions.
 
-# In[68]:
+# In[54]:
 
 
 # Try to understand impact and severity of incidents across eras
@@ -445,9 +445,9 @@ display(epoch_ai_clean.groupby(['ai_era', 'organization']).size().reset_index(na
 
 
 # #### Data Quality Checks (again)
-# Before proceeding to correlation analysis, I verify data quality across all datasets by checking for remaining duplicates and missing values. Note: Duplicates were previously removed from CISSM Cyber Events but not yet checked in other datasets.
+# Before proceeding to correlation analysis, I verify data quality across all datasets by checking for remaining duplicates and missing values. <br><br>**Note:** *Duplicates were previously removed from CISSM Cyber Events but not yet checked in other datasets.*
 
-# In[90]:
+# In[55]:
 
 
 # Check for duplicated data
@@ -457,7 +457,7 @@ display(f"Cyber Events duplicates: {cyber_events_clean.duplicated().sum()}")
 display(f"Epoch AI duplicates: {epoch_ai_clean.duplicated().sum()}")
 
 
-# In[ ]:
+# In[56]:
 
 
 # Dig in Cyber Events duplicate values
@@ -472,7 +472,7 @@ display("Sample duplicate rows:")
 display(cyber_events_clean[cyber_events_clean.duplicated(keep=False)].sort_values(['event_date', 'event_type']).head(10))
 
 
-# In[71]:
+# In[57]:
 
 
 # Check missing values again after cleaning
@@ -485,12 +485,15 @@ display("Epoch AI:")
 display(epoch_ai_clean.isnull().sum())
 
 
-# In[72]:
+# ---
+# # Static Data Visualizations
+
+# Box plots reveal the distribution and potential outliers in model parameter counts. The log10 transformation provides better visibility given the wide range of values
+
+# In[58]:
 
 
 # Check for outliers for model parameters in Epoch AI dataset
-import matplotlib.pyplot as plt
-
 fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 
 epoch_ai_clean['parameters'].dropna().plot(kind='box', ax=axes[0], title='Model Parameters (raw)')
@@ -500,7 +503,11 @@ plt.tight_layout()
 plt.show()
 
 
-# In[73]:
+# <span style="color:red"> Visual shows a high number of outliers in raw scale, not surprising given the exponential growth in model sizes</span>
+
+# Create a summary visualization showing temporal trends and categorical distributions across my key datasets. These plots reveal the parallel growth in both AI model releases and cyber events over time.
+
+# In[59]:
 
 
 # Histogram of events over time and distributions
@@ -518,7 +525,16 @@ plt.tight_layout()
 plt.show()
 
 
-# In[74]:
+# <span style = "color:red">Cyber events trending upwards. We see an initial correlation between AI model releases and cyber events.</span>
+
+# Aggregate my cleaned datasets by year and combine them into a single dataframe for correlation analysis. This allows me to quantify the relationship between:
+# - **Cyber event frequency** (CISSM database)
+# - **AI model releases** (Epoch AI — public language models)
+# - **AI-related incidents** (AI Incident Database)
+# 
+# The scatter matrix visualizes pairwise relationships, while the correlation matrix provides Pearson coefficients to measure the strength of these relationships.
+
+# In[60]:
 
 
 # Correlation analysis between AI model releases and cyber events
@@ -543,7 +559,14 @@ plt.suptitle('Correlation: Cyber Events vs AI Model Releases')
 plt.show()
 
 
-# In[75]:
+# <span style = "color:red">All three variables in the visual move together, when one goes up, the other tend to follow. This gives us a very strong correlation coefficient of 0.744</span>
+
+# #### Pre-AI vs Post-AI Era Comparison
+# Bar charts comparing event volumes across eras. This visualization highlights the increase in both AI model releases and cyber events following ChatGPT's public release
+# 
+# **Note:** *The post-AI era (2023+) represents a shorter time period than pre-AI (2015-2022), so raw counts should be interpreted with this in mind.*
+
+# In[61]:
 
 
 # Bar Chart Pre vs Post AI Era comparison
@@ -564,7 +587,13 @@ axes[2].set_ylabel('Count')
 plt.show()
 
 
-# In[76]:
+# <span style = "color:red">Post AI has fewer total events BUT covers fewer years. When you do the math (on average): 2,300/year post-AI vs 1,190/year pre-AI — attacks nearly doubled!</span>
+
+# A scatter plot with regression line visualizing the strong positive correlation (r=0.744) between public AI model releases and cyber event frequency. Each point represents one year, with annotations showing the temporal progression from 2015 to 2023
+# 
+# This visualization supports my hypothesis that increased AI accessibility correlates with increased cybercrime activity.
+
+# In[62]:
 
 
 # Scatter plot with regression line
@@ -583,7 +612,13 @@ for year in yearly_combined.index:
 plt.show()
 
 
-# In[77]:
+# <span style = "color:red">Correlation coefficient of 0.744 equals a very strong positive correlation. Points flow from bottom-left (early years) to top-right (recent years).</span>
+
+# A dual-axis time series showing the parallel growth of cyber events and AI model releases from 2015 to present. The vertical dashed line marks ChatGPT's public release (November 2022), which defines our pre/post AI era boundary.
+# 
+# This visualization illustrates how both metrics have risen together over time, increasing in recent years.
+
+# In[63]:
 
 
 # Distribution chart of time series with ChatGPT release marked
@@ -610,7 +645,13 @@ plt.tight_layout()
 plt.show()
 
 
-# In[78]:
+# <span style = "color:red">Both cyber events and AI models climb together over time. Big spike around 2022-2023 which would coincide with the public availability of ChatGPT.</span>
+
+# Pie charts comparing the distribution of cyber event types before and after AI became widely accessible. These charts show whether the composition of attack types shifted between eras.
+# 
+# This helps answer: Did AI change *what kinds* of attacks occur, or just *how many*?
+
+# In[64]:
 
 
 # Attack types pre vs post AI era
@@ -628,7 +669,15 @@ plt.tight_layout()
 plt.show()
 
 
-# In[79]:
+# <span style = "color:red">Attack types barely changed between eras. Exploitive stays ~52% in both. AI didn't create new attack types, just more of them.</span>
+
+# ---
+# # Interactive Data Visualizations
+
+# #### Interactive Time Series: Cyber Events vs AI Model Releases
+# An enhanced version of the dual-axis time series
+
+# In[65]:
 
 
 # Dual axis time series with ChatGPT release marked
@@ -697,7 +746,13 @@ fig.update_yaxes(title_text="<b>AI Model Releases</b>", secondary_y=True, color=
 fig.show()
 
 
-# In[80]:
+# <span style = "color:red">Interactive visual showing both cyber events and AI models climb together over time. Big spike around 2022-2023 which would coincide with the public availability of ChatGPT.</span>
+
+# #### An enhanced scatter plot showing the relationship between AI model releases and cyber events.
+# 
+# The p-value < 0.05 indicates this correlation is statistically significant, there is only a 3.4% probability this relationship occurred by random chance.
+
+# In[66]:
 
 
 # Scatter plot with regression line using Plotly
@@ -770,7 +825,16 @@ fig.update_traces(
 fig.show()
 
 
-# In[81]:
+# <span style = "color:red">Interactive scatterplot shows p-value of 0.034 which shows that there is a statistically significant (less than 4%) chance that this is random</span>
+
+# Multi line chart tracking which industries are most frequently targeted by cyber attacks over time.
+# - **Which sectors** face the highest attack volumes
+# - **Trend patterns** — are certain industries experiencing accelerating attacks?
+# - **Pre vs post AI era shifts** — did targeting priorities change after AI became accessible?
+# 
+# The ChatGPT release marker shows comparison of industry targeting patterns before and after widespread AI availability.
+
+# In[67]:
 
 
 # Line Chart of Industries Targeted by Cyber Attacks Over Time
@@ -817,7 +881,19 @@ fig.update_traces(line=dict(width=2.5), marker=dict(size=8))
 fig.show()
 
 
-# In[82]:
+# <span style = "color:red">Healthcare dominates and peaked 2023 with Public Administration staying consistently high. Most industries spiked around 2022-2023, (which is significant as this was the time frame of hte publc availability of ChatGPT) then declined slightly in 2024.</span>
+
+# ---
+# # Data Pipelines for Machine Learning
+# In this section, I build classification models to predict whether a cyber event occurred in the pre-AI or post-AI era based on its characteristics (event type, actor type, motive, industry). This helps to understand whether attack patterns have fundamentally changed since AI became widely accessible.
+
+# #### Preparing Data for Classification
+# We prepare our event-level data for machine learning by:
+# - Filtering to the analysis period (2015+)
+# - Creating the target variable (`ai_era`: pre vs post)
+# - Checking for class imbalance between eras
+
+# In[68]:
 
 
 # Prepare event-level data for classification
@@ -834,7 +910,18 @@ display(cyber_ml['ai_era'].value_counts())
 cyber_ml.head()
 
 
-# In[83]:
+# Select four categorical features that describe the characteristics of each cyber event:
+# 
+# | Feature | Description |
+# |---------|-------------|
+# | `event_type` | Type of attack (ransomware, data breach, etc.) |
+# | `actor_type` | Who conducted the attack (nation-state, criminal group, etc.) |
+# | `motive` | Purpose of the attack (financial gain, espionage, etc.) |
+# | `industry` | Targeted sector (healthcare, finance, government, etc.) |
+# 
+# **Note:** _Rows with missing values in these features are removed_
+
+# In[69]:
 
 
 # Separate features and target
@@ -850,7 +937,10 @@ display("Features shape:", cyber_X.shape)
 display("Target shape:", cyber_y.shape)
 
 
-# In[84]:
+# Split the data into training (80%) and test (20%) sets using **stratified sampling** to maintain the same class distribution in both sets. This is important because:<br><br>
+# **Note:** _The classes are imbalanced (more pre than post events)_
+
+# In[70]:
 
 
 # Stratified train/test split
@@ -867,7 +957,12 @@ display("Training target distribution:")
 display(y_train.value_counts())
 
 
-# In[85]:
+# Construct a scikit-learn pipeline to systematically preprocess categorical features:
+# 
+# **SimpleImputer:** Fill missing values with 'Unknown'<br>
+# **OneHotEncoder:** Convert categories to binary features
+
+# In[71]:
 
 
 # Define numeric and categorical features
@@ -889,7 +984,11 @@ X_train_prepared = full_pipeline.fit_transform(X_train)
 display("Transformed training data shape:", X_train_prepared.shape)
 
 
-# In[86]:
+# Train three classification models with different characteristics, Logistic Regression Model, Decision Tree and Random Forest.<br><br>
+# 
+# Training accuracy provides an initial check, but i'll use cross-validation and test set evaluation to assess true model performance.
+
+# In[72]:
 
 
 # Model 1: Logistic Regression
@@ -918,7 +1017,9 @@ forest_train_accuracy = accuracy_score(y_train, predictions)
 display("Random Forest Training Accuracy:", forest_train_accuracy)
 
 
-# In[87]:
+# Use cross validation to get a more reliable estimate of model performance.
+
+# In[73]:
 
 
 # Cross validation for Logistic Regression
@@ -941,7 +1042,10 @@ display("Mean:", forest_scores.mean())
 display("Std:", forest_scores.std())
 
 
-# In[88]:
+# Evaluate all models on the test set
+# 
+
+# In[74]:
 
 
 # Evaluate on test set
@@ -977,6 +1081,31 @@ display(f"{'Decision Tree':<25} {tree_scores.mean():<12.4f} {tree_scores.std():<
 display(f"{'Random Forest':<25} {forest_scores.mean():<12.4f} {forest_scores.std():<12.4f} {forest_test_accuracy:<12.4f}")
 
 
+# ---
+# # Conclusion
+
+# ### Hypothesis: 
+# *AI availability has likely contributed to an increase in cybercrime volume and sophistication, as these tools lower technical barriers for attackers and eliminate traditional red flags such as misspellings in phishing emails.*
+# 
+# ### Findings:
+# According to this analysis, I found a statistically significant positive correlation (r=0.744, p=0.034) between public AI model releases and cyber event frequency. The probability of this relationship occurring by chance is only 3.4%.
+# 
+# **More attacks after AI became available**
+#    - Pre-AI era: ~1,190 cyber events per year
+#    - Post-AI era: ~2,300 cyber events per year
+#    - That's almost double!
+# 
+# **Attack types stayed mostly the same**
+#    - Exploitive attacks: 52% before, 52% after
+#    - AI didn't create new attack types — it just made existing attacks easier to scale
+# 
+# **Our ML models got ~68% accuracy**
+#    - Better than guessing (50%) but not amazing
+#    - This confirms attacks changed *somewhat* but not dramatically
+# 
+# ## What this means
+# AI availability has lowered the barrier of entry for certain types of cyber crime. While these tools are designed for legitimate use and have strong safeguards, they can unintentionally help less skilled individuals to use advanced cyber techniques involved in many of todays cyber events. This doesn’t mean AI is 'causing' cyber crime, but it does change the landscape, attackers no longer need to be highly skilled writers or deeply technical to participate, which has contributed to an overall increase in volume and sophistication of attacks.
+
 # ## Resources and References
 # *What resources and references have you used for this project?*
 # 📝 <!-- Answer Below -->
@@ -988,7 +1117,7 @@ display(f"{'Random Forest':<25} {forest_scores.mean():<12.4f} {forest_scores.std
 # * https://jakevdp.github.io/PythonDataScienceHandbook/
 # * https://github.com/IT4063C-Fall22/Sandbox/blob/e2e/sandbox.ipynb 
 
-# In[89]:
+# In[75]:
 
 
 # ⚠️ Make sure you run this cell at the end of your notebook before every submission!
